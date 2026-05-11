@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Language } from '@/contexts/LanguageContext';
 
 function SettingRow({ icon: Icon, title, desc, children }: {
-  icon: React.ElementType; title: string; desc: string; children: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>; title: string; desc: string; children: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-b border-white/6 last:border-0">

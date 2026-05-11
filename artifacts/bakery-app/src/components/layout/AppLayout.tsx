@@ -7,7 +7,7 @@ import { LogOut } from 'lucide-react';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' as const } },
   exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
 };
 
