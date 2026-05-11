@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Bakery Management API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: orders
+    description: Order management
+  - name: customers
+    description: Customer management
+  - name: analytics
+    description: Analytics and reporting
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,217 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List all orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: payment_status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          schema:
+            type: string
+        - name: date_to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    patch:
+      operationId: updateOrder
+      tags: [orders]
+      summary: Update an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    delete:
+      operationId: deleteOrder
+      tags: [orders]
+      summary: Delete an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /orders/{id}/mark-paid:
+    patch:
+      operationId: markOrderPaid
+      tags: [orders]
+      summary: Mark order as fully paid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List all customers
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+
+  /analytics/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [analytics]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /analytics/revenue:
+    get:
+      operationId: getRevenueChart
+      tags: [analytics]
+      summary: Get revenue chart data by day
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Revenue chart data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueDataPoint"
+
+  /analytics/category-breakdown:
+    get:
+      operationId: getCategoryBreakdown
+      tags: [analytics]
+      summary: Get orders broken down by category
+      responses:
+        "200":
+          description: Category breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryBreakdown"
+
+  /analytics/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [analytics]
+      summary: Get recent activity feed
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +249,211 @@ components:
       required:
         - status
 
+    Order:
+      type: object
+      required:
+        - id
+        - customer_name
+        - phone_number
+        - category
+        - item_name
+        - quantity
+        - total_amount
+        - advance_payment
+        - remaining_balance
+        - delivery_date
+        - order_status
+        - payment_status
+        - created_at
+      properties:
+        id:
+          type: string
+        customer_name:
+          type: string
+        phone_number:
+          type: string
+        category:
+          type: string
+        item_name:
+          type: string
+        quantity:
+          type: integer
+        total_amount:
+          type: number
+        advance_payment:
+          type: number
+        remaining_balance:
+          type: number
+        delivery_date:
+          type: string
+        order_status:
+          type: string
+        payment_status:
+          type: string
+        notes:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    OrderInput:
+      type: object
+      required:
+        - customer_name
+        - phone_number
+        - category
+        - item_name
+        - quantity
+        - total_amount
+        - advance_payment
+        - delivery_date
+      properties:
+        customer_name:
+          type: string
+        phone_number:
+          type: string
+        category:
+          type: string
+        item_name:
+          type: string
+        quantity:
+          type: integer
+        total_amount:
+          type: number
+        advance_payment:
+          type: number
+        delivery_date:
+          type: string
+        order_status:
+          type: string
+        payment_status:
+          type: string
+        notes:
+          type: string
+
+    OrderUpdate:
+      type: object
+      properties:
+        customer_name:
+          type: string
+        phone_number:
+          type: string
+        category:
+          type: string
+        item_name:
+          type: string
+        quantity:
+          type: integer
+        total_amount:
+          type: number
+        advance_payment:
+          type: number
+        delivery_date:
+          type: string
+        order_status:
+          type: string
+        payment_status:
+          type: string
+        notes:
+          type: string
+
+    Customer:
+      type: object
+      required:
+        - id
+        - name
+        - phone_number
+        - total_orders
+        - total_spent
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone_number:
+          type: string
+        total_orders:
+          type: integer
+        total_spent:
+          type: number
+        last_order_date:
+          type: ["string", "null"]
+
+    DashboardStats:
+      type: object
+      required:
+        - today_orders
+        - pending_orders
+        - completed_orders
+        - total_revenue
+        - pending_payments
+        - total_customers
+        - this_month_revenue
+        - delivery_today
+      properties:
+        today_orders:
+          type: integer
+        pending_orders:
+          type: integer
+        completed_orders:
+          type: integer
+        total_revenue:
+          type: number
+        pending_payments:
+          type: number
+        total_customers:
+          type: integer
+        this_month_revenue:
+          type: number
+        delivery_today:
+          type: integer
+
+    RevenueDataPoint:
+      type: object
+      required:
+        - date
+        - revenue
+        - orders
+      properties:
+        date:
+          type: string
+        revenue:
+          type: number
+        orders:
+          type: integer
+
+    CategoryBreakdown:
+      type: object
+      required:
+        - category
+        - count
+        - revenue
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+        revenue:
+          type: number
+
+    ActivityItem:
+      type: object
+      required:
+        - id
+        - type
+        - message
+        - timestamp
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        customer_name:
+          type: ["string", "null"]
+        amount:
+          type: ["number", "null"]
