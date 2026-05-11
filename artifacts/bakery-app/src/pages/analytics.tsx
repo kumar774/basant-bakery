@@ -1,126 +1,119 @@
 import { useGetRevenueChart, useGetCategoryBreakdown } from '@workspace/api-client-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
+const COLORS = ['#d4a844', '#8a5a19', '#f5c842'];
+
+function ChartCard({ title, loading, children, delay = 0 }: {
+  title: string; loading: boolean; children: React.ReactNode; delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.3 }}
+      className="rounded-2xl border border-white/8 overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)' }}
+    >
+      <div className="px-4 pt-4 pb-2">
+        <h2 className="text-sm font-semibold text-primary">{title}</h2>
+      </div>
+      {loading ? (
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="h-52 px-2 pb-4">{children}</div>
+      )}
+    </motion.div>
+  );
+}
+
+const tooltipStyle = {
+  contentStyle: {
+    backgroundColor: 'rgba(20,12,4,0.95)',
+    borderColor: 'rgba(212,168,68,0.2)',
+    borderRadius: '10px',
+    fontSize: 11,
+  },
+};
 
 export default function Analytics() {
+  const { t } = useLanguage();
   const [days, setDays] = useState('30');
   const { data: revenueData, isLoading: revLoading } = useGetRevenueChart({ days: parseInt(days) });
   const { data: categoryData, isLoading: catLoading } = useGetCategoryBreakdown();
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-serif font-bold">Analytics</h1>
+    <div className="px-4 py-5 space-y-4 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-serif font-bold">{t.analytics}</h1>
         <Select value={days} onValueChange={setDays}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select timeframe" />
+          <SelectTrigger className="w-[120px] h-9 text-xs rounded-xl bg-white/5 border-white/10">
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7">Last 7 Days</SelectItem>
-            <SelectItem value="14">Last 14 Days</SelectItem>
-            <SelectItem value="30">Last 30 Days</SelectItem>
+            <SelectItem value="7">{t.last7Days}</SelectItem>
+            <SelectItem value="14">{t.last14Days}</SelectItem>
+            <SelectItem value="30">{t.last30Days}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card/50 backdrop-blur border-border col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg text-primary">Revenue Over Time</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            {revLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorRevenue)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+      <ChartCard title={t.revenueOverTime} loading={revLoading} delay={0.05}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={revenueData || []} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <defs>
+              <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#d4a844" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#d4a844" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false}
+              tickFormatter={(v) => `₹${v}`} />
+            <Tooltip {...tooltipStyle} />
+            <Area type="monotone" dataKey="revenue" stroke="#d4a844" strokeWidth={2}
+              fillOpacity={1} fill="url(#revGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
-        <Card className="bg-card/50 backdrop-blur border-border">
-          <CardHeader>
-            <CardTitle className="text-lg text-primary">Revenue by Category</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            {catLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip 
-                    cursor={{ fill: 'hsl(var(--muted))' }}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="revenue" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+      <ChartCard title={t.revenueByCategory} loading={catLoading} delay={0.12}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={categoryData || []} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <XAxis dataKey="category" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false}
+              tickFormatter={(v) => `₹${v}`} />
+            <Tooltip {...tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+            <Bar dataKey="revenue" fill="#d4a844" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
-        <Card className="bg-card/50 backdrop-blur border-border">
-          <CardHeader>
-            <CardTitle className="text-lg text-primary">Orders by Category</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            {catLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="count"
-                    nameKey="category"
-                  >
-                    {categoryData?.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }} />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <ChartCard title={t.ordersByCategory} loading={catLoading} delay={0.2}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={categoryData || []} cx="50%" cy="45%" innerRadius={52} outerRadius={80}
+              paddingAngle={4} dataKey="count" nameKey="category">
+              {categoryData?.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip {...tooltipStyle} />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+              formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.7)' }}>{value}</span>}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </ChartCard>
     </div>
   );
 }

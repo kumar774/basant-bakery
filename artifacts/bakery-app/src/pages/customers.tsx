@@ -1,75 +1,90 @@
 import { useState } from 'react';
 import { useListCustomers } from '@workspace/api-client-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, User } from 'lucide-react';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Customers() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
-  const { data: customers, isLoading } = useListCustomers({
-    search: search || undefined,
-  });
+  const { data: customers, isLoading } = useListCustomers({ search: search || undefined });
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-serif font-bold">Customers</h1>
+    <div className="px-4 py-5 space-y-4 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-serif font-bold">{t.customers}</h1>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          placeholder={t.searchCustomers}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 h-10 text-sm rounded-xl bg-white/5 border-white/10 focus:border-primary"
+        />
       </div>
 
-      <Card className="bg-card/50 backdrop-blur border-border">
-        <CardContent className="p-6 space-y-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by name or phone..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-background/50"
-            />
-          </div>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
+      ) : (
+        <AnimatePresence mode="popLayout">
+          {customers?.length === 0 ? (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-center text-muted-foreground text-sm py-12">
+              {t.noCustomers}
+            </motion.p>
+          ) : (
+            <div className="space-y-3">
+              {customers?.map((c, i) => (
+                <motion.div
+                  key={c.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  layout
+                  className="rounded-2xl border border-white/8 p-4"
+                  style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-bold text-sm"
+                      style={{ background: 'rgba(212,168,68,0.15)', color: '#d4a844' }}>
+                      {c.name[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-foreground text-sm">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{c.phone_number}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-base font-bold text-primary">₹{c.total_spent.toFixed(0)}</div>
+                      <div className="text-[11px] text-muted-foreground">{t.totalSpent}</div>
+                    </div>
+                  </div>
 
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone Number</TableHead>
-                  <TableHead className="text-right">Total Orders</TableHead>
-                  <TableHead className="text-right">Total Spent</TableHead>
-                  <TableHead className="text-right">Last Order Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                    </TableCell>
-                  </TableRow>
-                ) : customers?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No customers found.</TableCell>
-                  </TableRow>
-                ) : (
-                  customers?.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{customer.phone_number}</TableCell>
-                      <TableCell className="text-right">{customer.total_orders}</TableCell>
-                      <TableCell className="text-right font-medium">${customer.total_spent.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {customer.last_order_date ? format(new Date(customer.last_order_date), 'MMM d, yyyy') : 'Never'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  <div className="mt-3 pt-3 border-t border-white/6 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl p-2.5 text-center"
+                      style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <div className="text-base font-bold text-foreground">{c.total_orders}</div>
+                      <div className="text-[10px] text-muted-foreground">{t.totalOrders}</div>
+                    </div>
+                    <div className="rounded-xl p-2.5 text-center"
+                      style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <div className="text-xs font-medium text-foreground">
+                        {c.last_order_date
+                          ? format(new Date(c.last_order_date), 'dd MMM yy')
+                          : '—'}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{t.lastOrder}</div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
