@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -16,32 +17,43 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+function Page({ children }: { children: React.ReactNode }) {
+  return <ErrorBoundary>{children}</ErrorBoundary>;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/">
-        <ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><Dashboard /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route path="/orders/new">
-        <ProtectedRoute><AppLayout><NewOrder /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><NewOrder /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route path="/orders">
-        <ProtectedRoute><AppLayout><Orders /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><Orders /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route path="/customers">
-        <ProtectedRoute><AppLayout><Customers /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><Customers /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route path="/analytics">
-        <ProtectedRoute><AppLayout><Analytics /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><Analytics /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route path="/settings">
-        <ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><Settings /></Page></AppLayout></ProtectedRoute>
       </Route>
       <Route>
-        <ProtectedRoute><AppLayout><NotFound /></AppLayout></ProtectedRoute>
+        <ProtectedRoute><AppLayout><Page><NotFound /></Page></AppLayout></ProtectedRoute>
       </Route>
     </Switch>
   );
@@ -49,18 +61,20 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <LanguageProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AuthProvider>
-              <Router />
-            </AuthProvider>
-          </WouterRouter>
-        </LanguageProvider>
-        <Toaster position="top-center" theme="dark" />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <LanguageProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <AuthProvider>
+                <Router />
+              </AuthProvider>
+            </WouterRouter>
+          </LanguageProvider>
+          <Toaster position="top-center" theme="dark" richColors closeButton />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
