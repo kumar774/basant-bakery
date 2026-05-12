@@ -69,7 +69,7 @@ export function useDashboardStats() {
       today_orders:        orders.filter((o) => o.pickup_date === today).length,
       pickup_today:        orders.filter((o) => o.pickup_date === today).length,
       pending_orders:      orders.filter((o) => o.order_status === 'Pending').length,
-      completed_orders:    orders.filter((o) => o.order_status === 'Delivered').length,
+      completed_orders:    orders.filter((o) => o.order_status === 'Collected').length,
       total_revenue:       orders.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
       this_month_revenue:  orders.filter((o) => (o.created_at ?? '') >= startOfMonth)
                                  .reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
