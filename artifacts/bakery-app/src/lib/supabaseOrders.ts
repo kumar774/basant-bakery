@@ -32,11 +32,10 @@ export type CreateOrderInput = {
 
 export type UpdateOrderInput = Partial<CreateOrderInput>;
 
-/** Friendly error message, with a hint when it looks like an RLS denial. */
 function supabaseError(msg: string, code?: string): Error {
   if (code === '42501' || msg.toLowerCase().includes('row-level security')) {
     return new Error(
-      'Permission denied. Enable Row Level Security policies for the orders table in your Supabase dashboard (or disable RLS for development).'
+      'Permission denied — enable RLS policies for the orders table in your Supabase dashboard, or disable RLS for development.'
     );
   }
   if (msg === 'JWT expired' || msg.toLowerCase().includes('not authenticated')) {
@@ -46,8 +45,8 @@ function supabaseError(msg: string, code?: string): Error {
 }
 
 function computePayment(total: number, advance: number) {
-  const t = Number(total) || 0;
-  const a = Math.min(Number(advance) || 0, t);
+  const t = Math.max(0, Number(total) || 0);
+  const a = Math.min(Math.max(0, Number(advance) || 0), t);
   const remaining = Math.max(0, t - a);
   const payment_status: Order['payment_status'] =
     remaining <= 0 && (a > 0 || t === 0) ? 'Paid'
@@ -56,7 +55,6 @@ function computePayment(total: number, advance: number) {
   return { remaining_payment: remaining, payment_status };
 }
 
-/** Normalise a raw DB row — coerce numeric strings to numbers. */
 function normalise(row: Record<string, unknown>): Order {
   return {
     ...row,
@@ -93,28 +91,25 @@ export async function fetchOrders(filters?: {
 
 export async function insertOrder(input: CreateOrderInput): Promise<Order> {
   const { remaining_payment, payment_status } = computePayment(
-    input.total_amount,
-    input.advance_payment
+    input.total_amount, input.advance_payment
   );
-
-  const payload = {
-    customer_name:     input.customer_name.trim(),
-    customer_phone:    input.customer_phone.trim(),
-    item_category:     input.item_category,
-    item_name:         input.item_name.trim(),
-    quantity:          Number(input.quantity) || 1,
-    total_amount:      Number(input.total_amount) || 0,
-    advance_payment:   Number(input.advance_payment) || 0,
-    remaining_payment,
-    payment_status,
-    order_status:      input.order_status ?? 'Pending',
-    pickup_date:       input.pickup_date,
-    notes:             input.notes?.trim() ?? null,
-  };
 
   const { data, error } = await supabase
     .from('orders')
-    .insert(payload)
+    .insert({
+      customer_name:   input.customer_name.trim(),
+      customer_phone:  input.customer_phone.trim(),
+      item_category:   input.item_category,
+      item_name:       input.item_name.trim(),
+      quantity:        Number(input.quantity) || 1,
+      total_amount:    Number(input.total_amount) || 0,
+      advance_payment: Number(input.advance_payment) || 0,
+      remaining_payment,
+      payment_status,
+      order_status:    input.order_status ?? 'Pending',
+      pickup_date:     input.pickup_date,
+      notes:           input.notes?.trim() ?? null,
+    })
     .select()
     .single();
 
@@ -123,7 +118,6 @@ export async function insertOrder(input: CreateOrderInput): Promise<Order> {
 }
 
 export async function patchOrder(id: string, input: UpdateOrderInput): Promise<Order> {
-  // Build update payload — only include fields that were actually provided
   const update: Record<string, unknown> = {};
 
   if (input.customer_name  !== undefined) update.customer_name  = input.customer_name.trim();
@@ -135,18 +129,16 @@ export async function patchOrder(id: string, input: UpdateOrderInput): Promise<O
   if (input.pickup_date    !== undefined) update.pickup_date    = input.pickup_date;
   if (input.notes          !== undefined) update.notes          = input.notes?.trim() ?? null;
 
-  // Recalculate payment whenever either amount field changes
   if (input.total_amount !== undefined || input.advance_payment !== undefined) {
-    // Fetch current values to fill in whichever was NOT provided
-    const { data: current, error: fe } = await supabase
+    const { data: cur, error: fe } = await supabase
       .from('orders')
       .select('total_amount,advance_payment')
       .eq('id', id)
       .single();
     if (fe) throw supabaseError(fe.message, fe.code);
 
-    const total   = input.total_amount    !== undefined ? Number(input.total_amount)    : Number(current.total_amount)   || 0;
-    const advance = input.advance_payment !== undefined ? Number(input.advance_payment) : Number(current.advance_payment) || 0;
+    const total   = input.total_amount    !== undefined ? Number(input.total_amount)    : Number(cur.total_amount)   || 0;
+    const advance = input.advance_payment !== undefined ? Number(input.advance_payment) : Number(cur.advance_payment) || 0;
     const { remaining_payment, payment_status } = computePayment(total, advance);
 
     update.total_amount      = total;
@@ -171,15 +163,22 @@ export async function removeOrder(id: string): Promise<void> {
   if (error) throw supabaseError(error.message, error.code);
 }
 
+/**
+ * Marks an order fully paid.
+ * Also advances order_status out of Pending / In Progress → Ready
+ * (payment done means it's being prepared or is ready to collect).
+ */
 export async function paidOrder(id: string): Promise<Order> {
-  const { data: current, error: fe } = await supabase
+  const { data: cur, error: fe } = await supabase
     .from('orders')
-    .select('total_amount')
+    .select('total_amount, order_status')
     .eq('id', id)
     .single();
   if (fe) throw supabaseError(fe.message, fe.code);
 
-  const total = Number(current.total_amount) || 0;
+  const total = Number(cur.total_amount) || 0;
+  const shouldAdvanceStatus =
+    cur.order_status === 'Pending' || cur.order_status === 'In Progress';
 
   const { data, error } = await supabase
     .from('orders')
@@ -187,7 +186,23 @@ export async function paidOrder(id: string): Promise<Order> {
       payment_status:    'Paid',
       remaining_payment: 0,
       advance_payment:   total,
+      ...(shouldAdvanceStatus ? { order_status: 'Ready' } : {}),
     })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw supabaseError(error.message, error.code);
+  return normalise(data as Record<string, unknown>);
+}
+
+export async function updateOrderStatus(
+  id: string,
+  status: Order['order_status']
+): Promise<Order> {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ order_status: status })
     .eq('id', id)
     .select()
     .single();

@@ -2,6 +2,87 @@ import React, { createContext, useContext, useState } from 'react';
 
 export type Language = 'en' | 'hi';
 
+type OrderShareData = {
+  customer_name: string;
+  phone_number: string;
+  item_name: string;
+  category: string;
+  quantity: number;
+  total_amount: number;
+  advance_payment: number;
+  remaining_balance: number;
+  pickup_date: string;
+  order_status: string;
+  payment_status: string;
+  notes?: string | null;
+};
+
+function buildWhatsApp(
+  header: string,
+  footer: string,
+  o: OrderShareData
+): string {
+  const isPaid = o.payment_status === 'Paid' || Number(o.remaining_balance) <= 0;
+  const total    = Number(o.total_amount).toFixed(0);
+  const advance  = Number(o.advance_payment).toFixed(0);
+  const balance  = Number(o.remaining_balance).toFixed(0);
+
+  const paymentSection = isPaid
+    ? `💰 Total: ₹${total}\n💳 Payment: ✅ Fully Paid`
+    : Number(o.advance_payment) > 0
+    ? `💰 Total: ₹${total}\n✅ Advance Paid: ₹${advance}\n⏳ Balance Due: ₹${balance}`
+    : `💰 Total: ₹${total}\n💳 Payment: ⏳ Pending`;
+
+  return [
+    header,
+    '',
+    `👤 Customer: ${o.customer_name}`,
+    `📞 Phone: ${o.phone_number}`,
+    '',
+    `🛒 Item: ${o.item_name} × ${o.quantity}`,
+    `📦 Category: ${o.category}`,
+    '',
+    paymentSection,
+    '',
+    `📅 Pickup Date: ${o.pickup_date}`,
+    `📋 Order Status: ${o.order_status}`,
+    ...(o.notes ? [`📝 Notes: ${o.notes}`] : []),
+    '',
+    footer,
+  ].join('\n');
+}
+
+function buildWhatsAppHi(o: OrderShareData): string {
+  const isPaid = o.payment_status === 'Paid' || Number(o.remaining_balance) <= 0;
+  const total   = Number(o.total_amount).toFixed(0);
+  const advance = Number(o.advance_payment).toFixed(0);
+  const balance = Number(o.remaining_balance).toFixed(0);
+
+  const paymentSection = isPaid
+    ? `💰 कुल: ₹${total}\n💳 भुगतान: ✅ पूरी तरह भुगतान`
+    : Number(o.advance_payment) > 0
+    ? `💰 कुल: ₹${total}\n✅ अग्रिम: ₹${advance}\n⏳ शेष: ₹${balance}`
+    : `💰 कुल: ₹${total}\n💳 भुगतान: ⏳ बकाया`;
+
+  return [
+    '*🍞 बसंत बेकरी — ऑर्डर विवरण*',
+    '',
+    `👤 ग्राहक: ${o.customer_name}`,
+    `📞 फोन: ${o.phone_number}`,
+    '',
+    `🛒 आइटम: ${o.item_name} × ${o.quantity}`,
+    `📦 श्रेणी: ${o.category}`,
+    '',
+    paymentSection,
+    '',
+    `📅 पिकअप: ${o.pickup_date}`,
+    `📋 स्थिति: ${o.order_status}`,
+    ...(o.notes ? [`📝 नोट: ${o.notes}`] : []),
+    '',
+    '_बसंत बेकरी में आपका स्वागत है_ 🙏',
+  ].join('\n');
+}
+
 const translations = {
   en: {
     appName: 'Basant Bakery',
@@ -17,6 +98,7 @@ const translations = {
     analytics: 'Analytics',
     settings: 'Settings',
     signOut: 'Sign Out',
+    signedInAs: 'Signed in as',
     todayOrders: "Today's Orders",
     pendingOrders: 'Pending Orders',
     pickupToday: 'Pickup Today',
@@ -27,17 +109,21 @@ const translations = {
     totalCustomers: 'Total Customers',
     salesByCategory: 'Sales by Category',
     recentActivity: 'Recent Activity',
-    noActivity: 'No recent activity',
+    noActivity: 'No recent activity yet',
     search: 'Search',
     searchOrders: 'Search customers, items...',
     searchCustomers: 'Search by name or phone...',
-    filterStatus: 'Filter Status',
-    allStatuses: 'All Statuses',
-    export: 'Export CSV',
+    filterStatus: 'Filter',
+    allStatuses: 'All',
+    export: 'Export',
     share: 'WhatsApp',
-    edit: 'Edit',
+    edit: 'Edit Order',
     delete: 'Delete',
-    markPaid: 'Mark Paid',
+    markPaid: 'Mark as Paid',
+    markReady: 'Mark as Ready',
+    markCollected: 'Mark as Collected',
+    markedReady: 'Order marked Ready',
+    markedCollected: 'Order marked Collected',
     confirmDelete: 'Are you sure you want to delete this order?',
     noOrders: 'No orders found.',
     noCustomers: 'No customers found.',
@@ -63,20 +149,20 @@ const translations = {
     cancel: 'Cancel',
     createOrder: 'Create Order',
     updateOrder: 'Update Order',
-    orderCreated: 'Order created successfully',
-    orderUpdated: 'Order updated successfully',
+    orderCreated: 'Order created successfully!',
+    orderUpdated: 'Order updated successfully!',
     orderDeleted: 'Order deleted',
-    markedPaid: 'Marked as paid',
-    failedCreate: 'Failed to create order',
-    failedUpdate: 'Failed to update order',
+    markedPaid: 'Marked as Paid',
+    failedCreate: 'Failed to create',
+    failedUpdate: 'Failed to update',
     customerDetails: 'Customer Details',
     orderDetails: 'Order Details',
     paymentDelivery: 'Payment & Pickup',
     statusNotes: 'Status & Notes',
-    autoPaymentNote: 'Payment status is set automatically based on amounts',
+    autoPaymentNote: 'Payment status is computed automatically from amounts',
     appearance: 'Appearance',
     darkMode: 'Dark Mode',
-    darkModeDesc: 'Toggle dark/light theme.',
+    darkModeDesc: 'Toggle dark / light theme.',
     language: 'Language',
     languageDesc: 'Switch between English and Hindi.',
     totalOrders: 'Total Orders',
@@ -90,8 +176,7 @@ const translations = {
     last7Days: 'Last 7 Days',
     last14Days: 'Last 14 Days',
     last30Days: 'Last 30 Days',
-    orderShareText: (o: OrderShareData) =>
-      `*Basant Bakery - Order Details*\n\n👤 Customer: ${o.customer_name}\n📞 Phone: ${o.phone_number}\n🎂 Item: ${o.item_name} (${o.category})\n📦 Qty: ${o.quantity}\n💰 Total: ₹${o.total_amount}\n✅ Advance: ₹${o.advance_payment}\n⏳ Balance: ₹${o.remaining_balance}\n📅 Pickup: ${o.pickup_date}\n📋 Status: ${o.order_status}\n💳 Payment: ${o.payment_status}${o.notes ? `\n📝 Notes: ${o.notes}` : ''}`,
+    balance: 'Balance',
     pending: 'Pending',
     inProgress: 'In Progress',
     ready: 'Ready',
@@ -101,6 +186,8 @@ const translations = {
     partial: 'Partial',
     paid: 'Paid',
     editOrder: 'Edit Order',
+    orderShareText: (o: OrderShareData) =>
+      buildWhatsApp('*🍞 Basant Bakery — Order Details*', '_Thank you for choosing Basant Bakery!_ 🙏', o),
   },
   hi: {
     appName: 'बसंत बेकरी',
@@ -116,6 +203,7 @@ const translations = {
     analytics: 'विश्लेषण',
     settings: 'सेटिंग्स',
     signOut: 'साइन आउट',
+    signedInAs: 'लॉगिन किया है',
     todayOrders: 'आज के ऑर्डर',
     pendingOrders: 'लंबित ऑर्डर',
     pickupToday: 'आज पिकअप',
@@ -124,19 +212,23 @@ const translations = {
     thisMonth: 'इस महीने',
     pendingPayments: 'बकाया भुगतान',
     totalCustomers: 'कुल ग्राहक',
-    salesByCategory: 'श्रेणी के अनुसार बिक्री',
+    salesByCategory: 'श्रेणी अनुसार बिक्री',
     recentActivity: 'हाल की गतिविधि',
-    noActivity: 'कोई हाल की गतिविधि नहीं',
+    noActivity: 'अभी कोई गतिविधि नहीं',
     search: 'खोजें',
     searchOrders: 'ग्राहक, आइटम खोजें...',
     searchCustomers: 'नाम या फोन से खोजें...',
-    filterStatus: 'स्थिति',
+    filterStatus: 'फ़िल्टर',
     allStatuses: 'सभी',
-    export: 'CSV निर्यात',
+    export: 'निर्यात',
     share: 'व्हाट्सएप',
-    edit: 'संपादित करें',
+    edit: 'ऑर्डर बदलें',
     delete: 'हटाएं',
     markPaid: 'भुगतान किया',
+    markReady: 'तैयार करें',
+    markCollected: 'संग्रह किया',
+    markedReady: 'ऑर्डर तैयार है',
+    markedCollected: 'ऑर्डर संग्रह किया',
     confirmDelete: 'क्या आप इस ऑर्डर को हटाना चाहते हैं?',
     noOrders: 'कोई ऑर्डर नहीं मिला।',
     noCustomers: 'कोई ग्राहक नहीं मिला।',
@@ -162,12 +254,12 @@ const translations = {
     cancel: 'रद्द करें',
     createOrder: 'ऑर्डर बनाएं',
     updateOrder: 'ऑर्डर अपडेट करें',
-    orderCreated: 'ऑर्डर सफलतापूर्वक बनाया गया',
-    orderUpdated: 'ऑर्डर सफलतापूर्वक अपडेट किया गया',
+    orderCreated: 'ऑर्डर सफलतापूर्वक बनाया गया!',
+    orderUpdated: 'ऑर्डर सफलतापूर्वक अपडेट किया गया!',
     orderDeleted: 'ऑर्डर हटाया गया',
-    markedPaid: 'भुगतान किया हुआ',
+    markedPaid: 'भुगतान दर्ज हुआ',
     failedCreate: 'ऑर्डर बनाने में विफल',
-    failedUpdate: 'ऑर्डर अपडेट करने में विफल',
+    failedUpdate: 'अपडेट करने में विफल',
     customerDetails: 'ग्राहक विवरण',
     orderDetails: 'ऑर्डर विवरण',
     paymentDelivery: 'भुगतान और पिकअप',
@@ -189,8 +281,7 @@ const translations = {
     last7Days: 'पिछले 7 दिन',
     last14Days: 'पिछले 14 दिन',
     last30Days: 'पिछले 30 दिन',
-    orderShareText: (o: OrderShareData) =>
-      `*बसंत बेकरी - ऑर्डर विवरण*\n\n👤 ग्राहक: ${o.customer_name}\n📞 फोन: ${o.phone_number}\n🎂 आइटम: ${o.item_name} (${o.category})\n📦 मात्रा: ${o.quantity}\n💰 कुल: ₹${o.total_amount}\n✅ अग्रिम: ₹${o.advance_payment}\n⏳ शेष: ₹${o.remaining_balance}\n📅 पिकअप: ${o.pickup_date}\n📋 स्थिति: ${o.order_status}\n💳 भुगतान: ${o.payment_status}${o.notes ? `\n📝 नोट: ${o.notes}` : ''}`,
+    balance: 'शेष',
     pending: 'लंबित',
     inProgress: 'प्रगति में',
     ready: 'तैयार',
@@ -200,22 +291,8 @@ const translations = {
     partial: 'आंशिक',
     paid: 'भुगतान किया',
     editOrder: 'ऑर्डर संपादित करें',
+    orderShareText: (o: OrderShareData) => buildWhatsAppHi(o),
   },
-};
-
-type OrderShareData = {
-  customer_name: string;
-  phone_number: string;
-  item_name: string;
-  category: string;
-  quantity: number;
-  total_amount: number;
-  advance_payment: number;
-  remaining_balance: number;
-  pickup_date: string;
-  order_status: string;
-  payment_status: string;
-  notes?: string | null;
 };
 
 type Translations = typeof translations.en;
