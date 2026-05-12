@@ -17,38 +17,24 @@ type OrderShareData = {
   notes?: string | null;
 };
 
-function buildWhatsApp(
-  header: string,
-  footer: string,
-  o: OrderShareData
-): string {
+function buildWhatsApp(header: string, footer: string, o: OrderShareData): string {
   const isPaid = o.payment_status === 'Paid' || Number(o.remaining_balance) <= 0;
-  const total    = Number(o.total_amount).toFixed(0);
-  const advance  = Number(o.advance_payment).toFixed(0);
-  const balance  = Number(o.remaining_balance).toFixed(0);
-
+  const total   = Number(o.total_amount).toFixed(0);
+  const advance = Number(o.advance_payment).toFixed(0);
+  const balance = Number(o.remaining_balance).toFixed(0);
   const paymentSection = isPaid
     ? `💰 Total: ₹${total}\n💳 Payment: ✅ Fully Paid`
     : Number(o.advance_payment) > 0
     ? `💰 Total: ₹${total}\n✅ Advance Paid: ₹${advance}\n⏳ Balance Due: ₹${balance}`
     : `💰 Total: ₹${total}\n💳 Payment: ⏳ Pending`;
-
   return [
-    header,
-    '',
-    `👤 Customer: ${o.customer_name}`,
-    `📞 Phone: ${o.phone_number}`,
-    '',
-    `🛒 Item: ${o.item_name} × ${o.quantity}`,
-    `📦 Category: ${o.category}`,
-    '',
-    paymentSection,
-    '',
-    `📅 Pickup Date: ${o.pickup_date}`,
-    `📋 Order Status: ${o.order_status}`,
+    header, '',
+    `👤 Customer: ${o.customer_name}`, `📞 Phone: ${o.phone_number}`, '',
+    `🛒 Item: ${o.item_name} × ${o.quantity}`, `📦 Category: ${o.category}`, '',
+    paymentSection, '',
+    `📅 Pickup Date: ${o.pickup_date}`, `📋 Order Status: ${o.order_status}`,
     ...(o.notes ? [`📝 Notes: ${o.notes}`] : []),
-    '',
-    footer,
+    '', footer,
   ].join('\n');
 }
 
@@ -57,29 +43,19 @@ function buildWhatsAppHi(o: OrderShareData): string {
   const total   = Number(o.total_amount).toFixed(0);
   const advance = Number(o.advance_payment).toFixed(0);
   const balance = Number(o.remaining_balance).toFixed(0);
-
   const paymentSection = isPaid
     ? `💰 कुल: ₹${total}\n💳 भुगतान: ✅ पूरी तरह भुगतान`
     : Number(o.advance_payment) > 0
     ? `💰 कुल: ₹${total}\n✅ अग्रिम: ₹${advance}\n⏳ शेष: ₹${balance}`
     : `💰 कुल: ₹${total}\n💳 भुगतान: ⏳ बकाया`;
-
   return [
-    '*🍞 बसंत बेकरी — ऑर्डर विवरण*',
-    '',
-    `👤 ग्राहक: ${o.customer_name}`,
-    `📞 फोन: ${o.phone_number}`,
-    '',
-    `🛒 आइटम: ${o.item_name} × ${o.quantity}`,
-    `📦 श्रेणी: ${o.category}`,
-    '',
-    paymentSection,
-    '',
-    `📅 पिकअप: ${o.pickup_date}`,
-    `📋 स्थिति: ${o.order_status}`,
+    '*🍞 बसंत बेकरी — ऑर्डर विवरण*', '',
+    `👤 ग्राहक: ${o.customer_name}`, `📞 फोन: ${o.phone_number}`, '',
+    `🛒 आइटम: ${o.item_name} × ${o.quantity}`, `📦 श्रेणी: ${o.category}`, '',
+    paymentSection, '',
+    `📅 पिकअप: ${o.pickup_date}`, `📋 स्थिति: ${o.order_status}`,
     ...(o.notes ? [`📝 नोट: ${o.notes}`] : []),
-    '',
-    '_बसंत बेकरी में आपका स्वागत है_ 🙏',
+    '', '_बसंत बेकरी में आपका स्वागत है_ 🙏',
   ].join('\n');
 }
 
@@ -118,13 +94,16 @@ const translations = {
     export: 'Export',
     share: 'WhatsApp',
     edit: 'Edit Order',
-    delete: 'Delete',
+    delete: 'Delete Order',
     markPaid: 'Mark as Paid',
     markReady: 'Mark as Ready',
     markCollected: 'Mark as Collected',
     markedReady: 'Order marked Ready',
     markedCollected: 'Order marked Collected',
-    confirmDelete: 'Are you sure you want to delete this order?',
+    cancelOrder: 'Cancel Order',
+    markedCancelled: 'Order cancelled',
+    confirmDelete: 'Delete this order permanently?',
+    confirmCancel: 'Mark this order as cancelled?',
     noOrders: 'No orders found.',
     noCustomers: 'No customers found.',
     customer: 'Customer',
@@ -149,8 +128,8 @@ const translations = {
     cancel: 'Cancel',
     createOrder: 'Create Order',
     updateOrder: 'Update Order',
-    orderCreated: 'Order created successfully!',
-    orderUpdated: 'Order updated successfully!',
+    orderCreated: 'Order created!',
+    orderUpdated: 'Order updated!',
     orderDeleted: 'Order deleted',
     markedPaid: 'Marked as Paid',
     failedCreate: 'Failed to create',
@@ -167,6 +146,7 @@ const translations = {
     languageDesc: 'Switch between English and Hindi.',
     totalOrders: 'Total Orders',
     totalSpent: 'Total Spent',
+    totalBalance: 'Balance Due',
     lastOrder: 'Last Order',
     name: 'Name',
     phone: 'Phone',
@@ -186,6 +166,11 @@ const translations = {
     partial: 'Partial',
     paid: 'Paid',
     editOrder: 'Edit Order',
+    orderHistory: 'Order History',
+    noOrderHistory: 'No orders found for this customer.',
+    back: 'Back',
+    viewOrders: 'View Orders',
+    changeStatus: 'Change Status',
     orderShareText: (o: OrderShareData) =>
       buildWhatsApp('*🍞 Basant Bakery — Order Details*', '_Thank you for choosing Basant Bakery!_ 🙏', o),
   },
@@ -223,13 +208,16 @@ const translations = {
     export: 'निर्यात',
     share: 'व्हाट्सएप',
     edit: 'ऑर्डर बदलें',
-    delete: 'हटाएं',
+    delete: 'ऑर्डर हटाएं',
     markPaid: 'भुगतान किया',
     markReady: 'तैयार करें',
     markCollected: 'संग्रह किया',
     markedReady: 'ऑर्डर तैयार है',
     markedCollected: 'ऑर्डर संग्रह किया',
-    confirmDelete: 'क्या आप इस ऑर्डर को हटाना चाहते हैं?',
+    cancelOrder: 'ऑर्डर रद्द करें',
+    markedCancelled: 'ऑर्डर रद्द हुआ',
+    confirmDelete: 'यह ऑर्डर हमेशा के लिए हटाएं?',
+    confirmCancel: 'इस ऑर्डर को रद्द करें?',
     noOrders: 'कोई ऑर्डर नहीं मिला।',
     noCustomers: 'कोई ग्राहक नहीं मिला।',
     customer: 'ग्राहक',
@@ -254,8 +242,8 @@ const translations = {
     cancel: 'रद्द करें',
     createOrder: 'ऑर्डर बनाएं',
     updateOrder: 'ऑर्डर अपडेट करें',
-    orderCreated: 'ऑर्डर सफलतापूर्वक बनाया गया!',
-    orderUpdated: 'ऑर्डर सफलतापूर्वक अपडेट किया गया!',
+    orderCreated: 'ऑर्डर बन गया!',
+    orderUpdated: 'ऑर्डर अपडेट हुआ!',
     orderDeleted: 'ऑर्डर हटाया गया',
     markedPaid: 'भुगतान दर्ज हुआ',
     failedCreate: 'ऑर्डर बनाने में विफल',
@@ -272,6 +260,7 @@ const translations = {
     languageDesc: 'अंग्रेजी और हिंदी के बीच स्विच करें।',
     totalOrders: 'कुल ऑर्डर',
     totalSpent: 'कुल खर्च',
+    totalBalance: 'कुल शेष',
     lastOrder: 'अंतिम ऑर्डर',
     name: 'नाम',
     phone: 'फोन',
@@ -291,6 +280,11 @@ const translations = {
     partial: 'आंशिक',
     paid: 'भुगतान किया',
     editOrder: 'ऑर्डर संपादित करें',
+    orderHistory: 'ऑर्डर इतिहास',
+    noOrderHistory: 'इस ग्राहक का कोई ऑर्डर नहीं।',
+    back: 'वापस',
+    viewOrders: 'ऑर्डर देखें',
+    changeStatus: 'स्थिति बदलें',
     orderShareText: (o: OrderShareData) => buildWhatsAppHi(o),
   },
 };
@@ -309,12 +303,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>(
     (localStorage.getItem('lang') as Language) || 'en'
   );
-
-  const setLang = (l: Language) => {
-    setLangState(l);
-    localStorage.setItem('lang', l);
-  };
-
+  const setLang = (l: Language) => { setLangState(l); localStorage.setItem('lang', l); };
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
       {children}

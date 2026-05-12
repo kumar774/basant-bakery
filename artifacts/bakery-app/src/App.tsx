@@ -8,22 +8,18 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-import Login from "@/pages/login";
-import Dashboard from "@/pages/dashboard";
-import Orders from "@/pages/orders";
-import NewOrder from "@/pages/orders-new";
-import Customers from "@/pages/customers";
-import Analytics from "@/pages/analytics";
-import Settings from "@/pages/settings";
-import NotFound from "@/pages/not-found";
+import Login          from "@/pages/login";
+import Dashboard      from "@/pages/dashboard";
+import Orders         from "@/pages/orders";
+import NewOrder       from "@/pages/orders-new";
+import Customers      from "@/pages/customers";
+import CustomerDetail from "@/pages/customer-detail";
+import Analytics      from "@/pages/analytics";
+import Settings       from "@/pages/settings";
+import NotFound       from "@/pages/not-found";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
 function Page({ children }: { children: React.ReactNode }) {
@@ -34,6 +30,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+
       <Route path="/">
         <ProtectedRoute><AppLayout><Page><Dashboard /></Page></AppLayout></ProtectedRoute>
       </Route>
@@ -43,9 +40,23 @@ function Router() {
       <Route path="/orders">
         <ProtectedRoute><AppLayout><Page><Orders /></Page></AppLayout></ProtectedRoute>
       </Route>
+
+      {/* Customer detail — must come before /customers so :phone isn't swallowed */}
+      <Route path="/customers/:phone">
+        {(params) => (
+          <ProtectedRoute>
+            <AppLayout>
+              <Page>
+                <CustomerDetail phone={decodeURIComponent(params.phone ?? '')} />
+              </Page>
+            </AppLayout>
+          </ProtectedRoute>
+        )}
+      </Route>
       <Route path="/customers">
         <ProtectedRoute><AppLayout><Page><Customers /></Page></AppLayout></ProtectedRoute>
       </Route>
+
       <Route path="/analytics">
         <ProtectedRoute><AppLayout><Page><Analytics /></Page></AppLayout></ProtectedRoute>
       </Route>
